@@ -28,6 +28,13 @@ func (r *ConsulAdapter) interpolateService(script string, service *bridge.Servic
 	return withPort
 }
 
+func (r *ConsulAdapter) interpolateServiceArray(script []string, service *bridge.Service) {
+	for i, part := range script {
+		script[i] = strings.Replace(part, "$SERVICE_IP", service.IP, -1)
+		script[i] = strings.Replace(part, "$SERVICE_PORT", strconv.Itoa(service.Port), -1)
+	}
+}
+
 type Factory struct{}
 
 func (f *Factory) New(uri *url.URL) bridge.RegistryAdapter {
@@ -96,18 +103,22 @@ func (r *ConsulAdapter) buildCheck(service *bridge.Service) *consulapi.AgentServ
 	}
 	if path := service.Attrs["check_http"]; path != "" {
 		check.HTTP = fmt.Sprintf("http://%s:%d%s", service.IP, service.Port, path)
+		log.Println("register HTTP check:", check.HTTP)
 		if timeout := service.Attrs["check_timeout"]; timeout != "" {
 			check.Timeout = timeout
 		}
 	} else if path := service.Attrs["check_https"]; path != "" {
 		check.HTTP = fmt.Sprintf("https://%s:%d%s", service.IP, service.Port, path)
+		log.Println("register HTTPS check:", check.HTTP)
 		if timeout := service.Attrs["check_timeout"]; timeout != "" {
 			check.Timeout = timeout
 		}
-	} else if cmd := service.Attrs["check_cmd"]; cmd != "" {
-		check.Script = fmt.Sprintf("check-cmd %s %s %s", service.Origin.ContainerID[:12], service.Origin.ExposedPort, cmd)
+	//} else if cmd := service.Attrs["check_cmd"]; cmd != "" {
+	//	check.Shell = fmt.Sprintf("check-cmd %s %s %s", service.Origin.ContainerID[:12], service.Origin.ExposedPort, cmd)
 	} else if script := service.Attrs["check_script"]; script != "" {
-		check.Script = r.interpolateService(script, service)
+		script = r.interpolateService(script, service)
+		check.Args = strings.Split(script, " ")
+		log.Println("register SCRIPT check:", check.Args)
 	} else if ttl := service.Attrs["check_ttl"]; ttl != "" {
 		check.TTL = ttl
 	} else if tcp := service.Attrs["check_tcp"]; tcp != "" {
@@ -115,10 +126,11 @@ func (r *ConsulAdapter) buildCheck(service *bridge.Service) *consulapi.AgentServ
 		if timeout := service.Attrs["check_timeout"]; timeout != "" {
 			check.Timeout = timeout
 		}
+		log.Println("register TCP check:", check.TCP)
 	} else {
 		return nil
 	}
-	if check.Script != "" || check.HTTP != "" || check.TCP != "" {
+	if len(check.Args) > 0 || check.Shell != "" || check.HTTP != "" || check.TCP != "" {
 		if interval := service.Attrs["check_interval"]; interval != "" {
 			check.Interval = interval
 		} else {
