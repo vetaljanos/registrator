@@ -8,9 +8,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/gliderlabs/registrator/bridge"
 	consulapi "github.com/hashicorp/consul/api"
 	"github.com/hashicorp/go-cleanhttp"
+	"github.com/vetaljanos/registrator/bridge"
 )
 
 const DefaultInterval = "10s"
@@ -113,8 +113,8 @@ func (r *ConsulAdapter) buildCheck(service *bridge.Service) *consulapi.AgentServ
 		if timeout := service.Attrs["check_timeout"]; timeout != "" {
 			check.Timeout = timeout
 		}
-	//} else if cmd := service.Attrs["check_cmd"]; cmd != "" {
-	//	check.Shell = fmt.Sprintf("check-cmd %s %s %s", service.Origin.ContainerID[:12], service.Origin.ExposedPort, cmd)
+		//} else if cmd := service.Attrs["check_cmd"]; cmd != "" {
+		//	check.Shell = fmt.Sprintf("check-cmd %s %s %s", service.Origin.ContainerID[:12], service.Origin.ExposedPort, cmd)
 	} else if script := service.Attrs["check_script"]; script != "" {
 		script = r.interpolateService(script, service)
 		check.Args = strings.Split(script, " ")

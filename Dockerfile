@@ -1,5 +1,5 @@
 FROM golang:1.9.4-alpine3.7 AS builder
-WORKDIR /go/src/github.com/gliderlabs/registrator/
+WORKDIR /go/src/github.com/vetaljanos/registrator/
 COPY . .
 RUN \
 	apk add --no-cache curl git \
@@ -13,6 +13,6 @@ RUN \
 
 FROM alpine:3.7
 RUN apk add --no-cache ca-certificates
-COPY --from=builder /go/src/github.com/gliderlabs/registrator/bin/registrator /bin/registrator
+COPY --from=builder /go/src/github.com/vetaljanos/registrator/bin/registrator /bin/registrator
 
 ENTRYPOINT ["/bin/registrator"]
