@@ -109,10 +109,13 @@ func (r *ConsulAdapter) buildCheck(service *bridge.Service) *consulapi.AgentServ
 		}
 	} else if path := service.Attrs["check_https"]; path != "" {
 		check.HTTP = fmt.Sprintf("https://%s:%d%s", service.IP, service.Port, path)
-		log.Println("register HTTPS check:", check.HTTP)
 		if timeout := service.Attrs["check_timeout"]; timeout != "" {
 			check.Timeout = timeout
 		}
+		check.TLSSkipVerify = service.TLSSkipVerify
+
+		log.Println("register HTTPS check:", check.HTTP, "TLS Verify: ", check.TLSSkipVerify)
+
 		//} else if cmd := service.Attrs["check_cmd"]; cmd != "" {
 		//	check.Shell = fmt.Sprintf("check-cmd %s %s %s", service.Origin.ContainerID[:12], service.Origin.ExposedPort, cmd)
 	} else if script := service.Attrs["check_script"]; script != "" {
