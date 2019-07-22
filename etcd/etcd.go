@@ -82,7 +82,7 @@ func (r *EtcdAdapter) syncEtcdCluster() {
 	}
 }
 
-func (r *EtcdAdapter) Register(service *bridge.Service) error {
+func (r *EtcdAdapter) Register(service *bridge.Service, services []*bridge.Service) error {
 	r.syncEtcdCluster()
 
 	path := r.path + "/" + service.Name + "/" + service.ID

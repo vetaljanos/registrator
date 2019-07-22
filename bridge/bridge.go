@@ -107,8 +107,9 @@ func (b *Bridge) Sync(quiet bool) {
 		if services == nil {
 			b.add(listing.ID, quiet)
 		} else {
+
 			for _, service := range services {
-				err := b.registry.Register(service)
+				err := b.registry.Register(service, services)
 				if err != nil {
 					log.Println("sync register failed:", service, err)
 				}
@@ -228,6 +229,9 @@ func (b *Bridge) add(containerId string, quiet bool) {
 	}
 
 	isGroup := len(servicePorts) > 1
+
+	var services []*Service
+
 	for _, port := range servicePorts {
 		service := b.newService(port, isGroup)
 		if service == nil {
@@ -236,7 +240,14 @@ func (b *Bridge) add(containerId string, quiet bool) {
 			}
 			continue
 		}
-		err := b.registry.Register(service)
+
+		services = append(services, service)
+	}
+
+	for i := 0; i < len(services); i++ {
+		service := services[i]
+
+		err := b.registry.Register(service, services)
 		if err != nil {
 			log.Println("register failed:", service, err)
 			continue
@@ -244,6 +255,23 @@ func (b *Bridge) add(containerId string, quiet bool) {
 		b.services[container.ID] = append(b.services[container.ID], service)
 		log.Println("added:", container.ID[:12], service.ID)
 	}
+	/*	for _, port := range servicePorts {
+			service := b.newService(port, isGroup)
+			if service == nil {
+				if !quiet {
+					log.Println("ignored:", container.ID[:12], "service on port", port.ExposedPort)
+				}
+				continue
+			}
+			err := b.registry.Register(service)
+			if err != nil {
+				log.Println("register failed:", service, err)
+				continue
+			}
+			b.services[container.ID] = append(b.services[container.ID], service)
+			log.Println("added:", container.ID[:12], service.ID)
+		}
+	*/
 }
 
 func (b *Bridge) newService(port ServicePort, isgroup bool) *Service {

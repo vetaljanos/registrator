@@ -84,19 +84,19 @@ func (r *ConsulAdapter) Ping() error {
 	return nil
 }
 
-func (r *ConsulAdapter) Register(service *bridge.Service) error {
+func (r *ConsulAdapter) Register(service *bridge.Service, services []*bridge.Service) error {
 	registration := new(consulapi.AgentServiceRegistration)
 	registration.ID = service.ID
 	registration.Name = service.Name
 	registration.Port = service.Port
 	registration.Tags = service.Tags
 	registration.Address = service.IP
-	registration.Check = r.buildCheck(service)
+	registration.Check = r.buildCheck(service, services)
 	registration.Meta = service.Attrs
 	return r.client.Agent().ServiceRegister(registration)
 }
 
-func (r *ConsulAdapter) buildCheck(service *bridge.Service) *consulapi.AgentServiceCheck {
+func (r *ConsulAdapter) buildCheck(service *bridge.Service, services []*bridge.Service) *consulapi.AgentServiceCheck {
 	check := new(consulapi.AgentServiceCheck)
 	if status := service.Attrs["check_initial_status"]; status != "" {
 		check.Status = status
@@ -114,7 +114,7 @@ func (r *ConsulAdapter) buildCheck(service *bridge.Service) *consulapi.AgentServ
 		}
 		check.TLSSkipVerify = service.TLSSkipVerify
 
-		log.Println("register HTTPS check:", check.HTTP, "TLS Verify: ", check.TLSSkipVerify)
+		log.Println("register HTTPS check:", check.HTTP, "Skip TLS Verify: ", check.TLSSkipVerify)
 
 		//} else if cmd := service.Attrs["check_cmd"]; cmd != "" {
 		//	check.Shell = fmt.Sprintf("check-cmd %s %s %s", service.Origin.ContainerID[:12], service.Origin.ExposedPort, cmd)
@@ -130,6 +130,19 @@ func (r *ConsulAdapter) buildCheck(service *bridge.Service) *consulapi.AgentServ
 			check.Timeout = timeout
 		}
 		log.Println("register TCP check:", check.TCP)
+	} else if alias := service.Attrs["check_alias_port"]; alias != "" {
+		log.Println("register ALIAS check:")
+
+		for i := 0; i < len(services); i++ {
+			current := services[i]
+
+			if current.Origin.ExposedPort == alias {
+				check = r.buildCheck(current, services)
+				break
+			}
+		}
+
+		log.Println("register ALIAS check:", check)
 	} else {
 		return nil
 	}

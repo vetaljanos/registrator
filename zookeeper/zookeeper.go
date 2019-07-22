@@ -47,7 +47,7 @@ type ZnodeBody struct {
 	Attrs       map[string]string
 }
 
-func (r *ZkAdapter) Register(service *bridge.Service) error {
+func (r *ZkAdapter) Register(service *bridge.Service, services []*bridge.Service) error {
 	privatePort, _ := strconv.Atoi(service.Origin.ExposedPort)
 	publicPortString := strconv.Itoa(service.Port)
 	acl := zk.WorldACL(zk.PermAll)
